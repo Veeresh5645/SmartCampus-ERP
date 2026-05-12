@@ -6,11 +6,10 @@ class BusRoute(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    route_name = db.Column(db.String(100), nullable=False)
+    route_name = db.Column(db.String(100))
 
-    location = db.Column(db.String(100), nullable=False)
-
-    bus_fee = db.Column(db.Float, default=0)
+    bus_fee = db.Column(db.Float)
 
     def __repr__(self):
-        return f'<BusRoute {self.location}>'
+
+        return f'<BusRoute {self.route_name}>'

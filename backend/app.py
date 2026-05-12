@@ -21,6 +21,8 @@ from models.teacher_model import Teacher
 from models.attendance_model import Attendance
 from models.fee_structure_model import FeeStructure
 from models.bus_route_model import BusRoute
+from models.fee_structure_model import FeeStructure
+from models.bus_route_model import BusRoute
 
 # ROUTES
 from routes.auth_routes import auth_bp
@@ -30,6 +32,7 @@ from routes.attendance_routes import attendance_bp
 from routes.fee_routes import fee_bp
 from routes.dashboard_routes import dashboard_bp
 from routes.report_routes import report_bp
+from routes.fee_routes import fee_bp
 
 app = Flask(__name__)
 
@@ -63,6 +66,8 @@ app.register_blueprint(fee_bp, url_prefix='/api/fees')
 app.register_blueprint(dashboard_bp, url_prefix='/api/dashboard')
 
 app.register_blueprint(report_bp, url_prefix='/api/reports')
+
+app.register_blueprint(fee_bp, url_prefix='/api/fees')
 
 # CREATE DATABASE
 with app.app_context():
