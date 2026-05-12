@@ -6,7 +6,7 @@ class Student(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    full_name = db.Column(db.String(100), nullable=False)
+    full_name = db.Column(db.String(100))
 
     admission_number = db.Column(db.String(50), unique=True)
 
@@ -22,7 +22,7 @@ class Student(db.Model):
 
     phone = db.Column(db.String(20))
 
-    address = db.Column(db.Text)
+    address = db.Column(db.String(300))
 
     bus_required = db.Column(db.Boolean, default=False)
 
@@ -34,7 +34,7 @@ class Student(db.Model):
 
     bus_fee = db.Column(db.Float, default=0)
 
-    old_due = db.Column(db.Float, default=0)
+    previous_due = db.Column(db.Float, default=0)
 
     total_fee = db.Column(db.Float, default=0)
 
@@ -43,4 +43,5 @@ class Student(db.Model):
     remaining_amount = db.Column(db.Float, default=0)
 
     def __repr__(self):
+
         return f'<Student {self.full_name}>'
