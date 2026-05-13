@@ -65,6 +65,59 @@ def bulk_attendance():
 
             db.session.add(attendance)
 
+            # AUTO SALARY GENERATION
+            teacher = Teacher.query.get(
+                record.get(
+                    'teacher_id'
+                )
+            )
+
+            if teacher:
+
+                monthly_salary = int(
+                    teacher.salary or 0
+                )
+
+                working_days = 26
+
+                per_day_salary = (
+                    monthly_salary
+                    / working_days
+                )
+
+                final_salary = 0
+
+                if record.get(
+                    'status'
+                ) == 'Present':
+
+                    final_salary = (
+                        per_day_salary
+                    )
+
+                salary_record = SalaryRecord(
+
+                    teacher_id=teacher.id,
+
+                    month=data.get(
+                        'attendance_date'
+                    )[:7],
+
+                    working_days=working_days,
+
+                    attended_days=1
+                    if record.get(
+                        'status'
+                    ) == 'Present'
+                    else 0,
+
+                    salary=final_salary
+                )
+
+                db.session.add(
+                    salary_record
+                )
+
         db.session.commit()
 
         return jsonify({
