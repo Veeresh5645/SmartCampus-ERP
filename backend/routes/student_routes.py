@@ -59,6 +59,9 @@ def get_students():
 
     except Exception as e:
 
+        print("GET STUDENT ERROR:")
+        print(e)
+
         return jsonify({
             "error": str(e)
         }), 500
@@ -74,6 +77,9 @@ def add_student():
     try:
 
         data = request.get_json()
+
+        print("DATA RECEIVED:")
+        print(data)
 
         fee_structure = FeeStructure.query.filter_by(
 
@@ -240,6 +246,9 @@ def add_student():
         }), 201
 
     except Exception as e:
+
+        print("STUDENT ADD ERROR:")
+        print(e)
 
         return jsonify({
             "error": str(e)
