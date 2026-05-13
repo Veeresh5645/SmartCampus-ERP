@@ -41,7 +41,7 @@ def collect_fees():
 
             }), 404
 
-        paid_amount = int(
+        paid_amount = float(
 
             data.get(
                 'paid_amount',
@@ -74,7 +74,15 @@ def collect_fees():
                 datetime.now().date()
             ),
 
-            receipt_number=receipt_number
+            receipt_number=receipt_number,
+
+            payment_mode=data.get(
+                'payment_mode'
+            ),
+
+            academic_year=student.academic_year,
+
+            class_name=student.current_class
         )
 
         db.session.add(payment)
@@ -87,7 +95,19 @@ def collect_fees():
                 "Fees collected successfully",
 
             "receipt_number":
-                receipt_number
+                receipt_number,
+
+            "student_name":
+                student.full_name,
+
+            "amount":
+                paid_amount,
+
+            "payment_date":
+                str(datetime.now().date()),
+
+            "class_name":
+                student.current_class
         })
 
     except Exception as e:
@@ -131,7 +151,16 @@ def get_payments():
                     payment.payment_date,
 
                 "receipt_number":
-                    payment.receipt_number
+                    payment.receipt_number,
+
+                "payment_mode":
+                    payment.payment_mode,
+
+                "academic_year":
+                    payment.academic_year,
+
+                "class_name":
+                    payment.class_name
             })
 
         return jsonify(output)

@@ -4,27 +4,38 @@ class FeePayment(db.Model):
 
     __tablename__ = 'fee_payments'
 
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
 
-    receipt_number = db.Column(db.String(50))
+    student_id = db.Column(
+        db.Integer
+    )
 
-    student_name = db.Column(db.String(100))
+    amount = db.Column(
+        db.Float
+    )
 
-    admission_number = db.Column(db.String(50))
+    payment_date = db.Column(
+        db.String(50)
+    )
 
-    academic_year = db.Column(db.String(20))
+    receipt_number = db.Column(
+        db.String(100)
+    )
 
-    class_name = db.Column(db.String(50))
+    payment_mode = db.Column(
+        db.String(50)
+    )
 
-    amount_paid = db.Column(db.Float)
+    academic_year = db.Column(
+        db.String(50)
+    )
 
-    payment_mode = db.Column(db.String(20))
-
-    transaction_id = db.Column(db.String(100))
-
-    collected_by = db.Column(db.String(100))
-
-    payment_date = db.Column(db.String(50))
+    class_name = db.Column(
+        db.String(50)
+    )
 
     def __repr__(self):
 
