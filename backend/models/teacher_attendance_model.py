@@ -4,16 +4,23 @@ class TeacherAttendance(db.Model):
 
     __tablename__ = 'teacher_attendance'
 
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
 
-    teacher_id = db.Column(db.Integer)
+    teacher_id = db.Column(
+        db.Integer
+    )
 
-    teacher_name = db.Column(db.String(100))
+    attendance_date = db.Column(
+        db.String(50)
+    )
 
-    attendance_date = db.Column(db.String(50))
-
-    status = db.Column(db.String(20))
+    status = db.Column(
+        db.String(50)
+    )
 
     def __repr__(self):
 
-        return f'<TeacherAttendance {self.teacher_name}>'
+        return f'<Attendance {self.teacher_id}>'

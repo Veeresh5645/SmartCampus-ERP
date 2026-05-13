@@ -5,129 +5,128 @@ from database.db import db
 from models.teacher_model import Teacher
 from models.teacher_attendance_model import TeacherAttendance
 from models.salary_record_model import SalaryRecord
+from models.working_day_model import WorkingDay
 
-payroll_bp = Blueprint('payroll', __name__)
-
-# MARK TEACHER ATTENDANCE
-@payroll_bp.route('/mark-attendance', methods=['POST'])
-def mark_teacher_attendance():
-
-    data = request.get_json()
-
-    attendance = TeacherAttendance(
-
-        teacher_id=data.get('teacher_id'),
-
-        teacher_name=data.get('teacher_name'),
-
-        attendance_date=data.get('attendance_date'),
-
-        status=data.get('status')
-    )
-
-    db.session.add(attendance)
-
-    db.session.commit()
-
-    return jsonify({
-        "message": "Teacher attendance marked"
-    }), 201
+payroll_bp = Blueprint(
+    'payroll',
+    __name__
+)
 
 
-# GENERATE SALARY
-@payroll_bp.route('/generate-salary', methods=['POST'])
-def generate_salary():
+# SAVE ATTENDANCE
+@payroll_bp.route(
+    '/bulk-attendance',
+    methods=['POST']
+)
+def bulk_attendance():
 
-    data = request.get_json()
+    try:
 
-    teacher_id = data.get('teacher_id')
+        data = request.get_json()
 
-    month = data.get('month')
+        working_day = WorkingDay(
 
-    working_days = int(
-        data.get('working_days')
-    )
+            attendance_date=data.get(
+                'attendance_date'
+            ),
 
-    teacher = Teacher.query.get(teacher_id)
+            is_working_day=data.get(
+                'is_working_day'
+            ),
 
-    if not teacher:
+            holiday_reason=data.get(
+                'holiday_reason'
+            )
+        )
+
+        db.session.add(working_day)
+
+        records = data.get(
+            'attendance_records',
+            []
+        )
+
+        for record in records:
+
+            attendance = TeacherAttendance(
+
+                teacher_id=record.get(
+                    'teacher_id'
+                ),
+
+                attendance_date=data.get(
+                    'attendance_date'
+                ),
+
+                status=record.get(
+                    'status'
+                )
+            )
+
+            db.session.add(attendance)
+
+        db.session.commit()
 
         return jsonify({
-            "message": "Teacher not found"
-        }), 404
 
-    attendance_records = TeacherAttendance.query.filter_by(
-        teacher_id=teacher_id,
-        status="Present"
-    ).all()
+            "message":
+                "Attendance saved successfully"
 
-    attended_days = len(attendance_records)
+        }), 201
 
-    per_day_salary = (
-        teacher.salary / working_days
-    )
+    except Exception as e:
 
-    calculated_salary = (
-        per_day_salary * attended_days
-    )
+        print(e)
 
-    salary_record = SalaryRecord(
-
-        teacher_id=teacher.id,
-
-        teacher_name=teacher.full_name,
-
-        month=month,
-
-        total_working_days=working_days,
-
-        attended_days=attended_days,
-
-        monthly_salary=teacher.salary,
-
-        calculated_salary=calculated_salary
-    )
-
-    db.session.add(salary_record)
-
-    db.session.commit()
-
-    return jsonify({
-
-        "teacher": teacher.full_name,
-
-        "working_days": working_days,
-
-        "attended_days": attended_days,
-
-        "calculated_salary": calculated_salary
-
-    }), 200
+        return jsonify({
+            "error": str(e)
+        }), 500
 
 
 # GET SALARY RECORDS
-@payroll_bp.route('/salary-records', methods=['GET'])
-def salary_records():
+@payroll_bp.route(
+    '/salary-records',
+    methods=['GET']
+)
+def get_salary_records():
 
-    records = SalaryRecord.query.all()
+    try:
 
-    output = []
+        records = SalaryRecord.query.all()
 
-    for record in records:
+        output = []
 
-        output.append({
+        for record in records:
 
-            "id": record.id,
+            teacher = Teacher.query.get(
+                record.teacher_id
+            )
 
-            "teacher_name": record.teacher_name,
+            output.append({
 
-            "month": record.month,
+                "teacher_name":
+                    teacher.full_name
+                    if teacher else "",
 
-            "working_days": record.total_working_days,
+                "month":
+                    record.month,
 
-            "attended_days": record.attended_days,
+                "working_days":
+                    record.working_days,
 
-            "salary": record.calculated_salary
-        })
+                "attended_days":
+                    record.attended_days,
 
-    return jsonify(output), 200
+                "salary":
+                    record.salary
+            })
+
+        return jsonify(output)
+
+    except Exception as e:
+
+        print(e)
+
+        return jsonify({
+            "error": str(e)
+        }), 500

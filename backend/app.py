@@ -79,7 +79,7 @@ app.register_blueprint(
 
 # CREATE DATABASE TABLES
 with app.app_context():
-
+        db.drop_all()
         db.create_all()
 
 
