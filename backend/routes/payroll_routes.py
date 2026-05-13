@@ -61,6 +61,8 @@ def bulk_attendance():
 
     except Exception as e:
 
+        print(e)
+
         return jsonify({
             "error": str(e)
         }), 500
@@ -79,13 +81,21 @@ def generate_payroll():
 
         month = data.get('month')
 
-        SalaryRecord.query.filter_by(
-            month=month
-        ).delete()
-
         teachers = Teacher.query.all()
 
         for teacher in teachers:
+
+            existing_record = SalaryRecord.query.filter_by(
+
+                teacher_id=teacher.id,
+
+                month=month
+
+            ).first()
+
+            if existing_record:
+
+                continue
 
             attendance_records = TeacherAttendance.query.filter(
 
@@ -147,6 +157,8 @@ def generate_payroll():
 
     except Exception as e:
 
+        print(e)
+
         return jsonify({
             "error": str(e)
         }), 500
@@ -178,7 +190,8 @@ def get_salary_records(month):
                 "id": record.id,
 
                 "teacher_name":
-                    teacher.full_name,
+                    teacher.full_name
+                    if teacher else "",
 
                 "working_days":
                     record.working_days,
@@ -193,12 +206,17 @@ def get_salary_records(month):
                     record.is_paid,
 
                 "payment_mode":
-                    record.payment_mode
+                    record.payment_mode,
+
+                "paid_date":
+                    record.paid_date
             })
 
         return jsonify(output)
 
     except Exception as e:
+
+        print(e)
 
         return jsonify({
             "error": str(e)
@@ -220,6 +238,25 @@ def pay_salary(salary_id):
             salary_id
         )
 
+        if not salary_record:
+
+            return jsonify({
+
+                "message":
+                    "Salary record not found"
+
+            }), 404
+
+        # ALREADY PAID
+        if salary_record.is_paid:
+
+            return jsonify({
+
+                "message":
+                    "Salary already paid"
+
+            })
+
         salary_record.is_paid = True
 
         salary_record.payment_mode = data.get(
@@ -232,6 +269,7 @@ def pay_salary(salary_id):
 
         db.session.commit()
 
+        # TOTAL PAID SALARY FOR MONTH
         paid_records = SalaryRecord.query.filter_by(
 
             month=salary_record.month,
@@ -247,14 +285,19 @@ def pay_salary(salary_id):
             for item in paid_records
         ])
 
+        comment_text = (
+            f'Salary paid for {salary_record.month}'
+        )
+
         existing_expense = Expense.query.filter_by(
 
             category='Salary',
 
-            comment=f'Salary paid for {salary_record.month}'
+            comment=comment_text
 
         ).first()
 
+        # CREATE OR UPDATE EXPENSE
         if not existing_expense:
 
             expense = Expense(
@@ -263,7 +306,7 @@ def pay_salary(salary_id):
 
                 amount=total_salary_paid,
 
-                comment=f'Salary paid for {salary_record.month}',
+                comment=comment_text,
 
                 expense_date=str(
                     datetime.now().date()
@@ -283,11 +326,13 @@ def pay_salary(salary_id):
         return jsonify({
 
             "message":
-                "Salary paid"
+                "Salary paid successfully"
 
         })
 
     except Exception as e:
+
+        print(e)
 
         return jsonify({
             "error": str(e)
