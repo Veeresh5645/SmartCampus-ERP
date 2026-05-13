@@ -2,136 +2,12 @@ from flask import Blueprint, request, jsonify
 
 from database.db import db
 
-from models.student_model import Student
-from models.fee_payment_model import FeePayment
 from models.expense_model import Expense
-
-from datetime import datetime
 
 accounting_bp = Blueprint(
     'accounting',
     __name__
 )
-
-# COLLECT FEES
-@accounting_bp.route(
-    '/collect-fees',
-    methods=['POST']
-)
-def collect_fees():
-
-    try:
-
-        data = request.get_json()
-
-        student = Student.query.filter_by(
-            admission_number=data.get(
-                'admission_number'
-            )
-        ).first()
-
-        if not student:
-
-            return jsonify({
-                "message": "Student not found"
-            }), 404
-
-        amount = float(
-            data.get('amount_paid')
-        )
-
-        student.paid_amount += amount
-
-        student.remaining_amount -= amount
-
-        receipt_number = (
-            f"RCPT-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-        )
-
-        payment = FeePayment(
-
-            receipt_number=receipt_number,
-
-            student_name=student.full_name,
-
-            admission_number=student.admission_number,
-
-            academic_year=data.get(
-                'academic_year'
-            ),
-
-            class_name=student.current_class,
-
-            amount_paid=amount,
-
-            payment_mode=data.get(
-                'payment_mode'
-            ),
-
-            transaction_id=data.get(
-                'transaction_id'
-            ),
-
-            collected_by=data.get(
-                'collected_by'
-            ),
-
-            payment_date=str(
-                datetime.now()
-            )
-        )
-
-        db.session.add(payment)
-
-        db.session.commit()
-
-        return jsonify({
-
-            "message": "Fees collected",
-
-            "receipt_number": receipt_number
-
-        }), 200
-
-    except Exception as e:
-
-        return jsonify({
-            "error": str(e)
-        }), 500
-
-
-# GET PAYMENTS
-@accounting_bp.route(
-    '/payments',
-    methods=['GET']
-)
-def get_payments():
-
-    payments = FeePayment.query.all()
-
-    output = []
-
-    for payment in payments:
-
-        output.append({
-
-            "receipt_number":
-                payment.receipt_number,
-
-            "student_name":
-                payment.student_name,
-
-            "amount_paid":
-                payment.amount_paid,
-
-            "payment_mode":
-                payment.payment_mode,
-
-            "payment_date":
-                payment.payment_date
-        })
-
-    return jsonify(output), 200
 
 
 # ADD EXPENSE
@@ -145,40 +21,25 @@ def add_expense():
 
         data = request.get_json()
 
-        if not data.get('comment'):
-
-            return jsonify({
-                "message": "Comment required"
-            }), 400
-
         expense = Expense(
-
-            expense_date=data.get(
-                'expense_date'
-            ),
 
             category=data.get(
                 'category'
             ),
 
-            amount=data.get(
-                'amount'
-            ),
-
-            payment_mode=data.get(
-                'payment_mode'
+            amount=float(
+                data.get(
+                    'amount',
+                    0
+                ) or 0
             ),
 
             comment=data.get(
                 'comment'
             ),
 
-            added_by=data.get(
-                'added_by'
-            ),
-
-            academic_year=data.get(
-                'academic_year'
+            expense_date=data.get(
+                'expense_date'
             )
         )
 
@@ -187,10 +48,15 @@ def add_expense():
         db.session.commit()
 
         return jsonify({
-            "message": "Expense added"
+
+            "message":
+                "Expense added successfully"
+
         }), 201
 
     except Exception as e:
+
+        print(e)
 
         return jsonify({
             "error": str(e)
@@ -204,53 +70,37 @@ def add_expense():
 )
 def get_expenses():
 
-    category = request.args.get(
-        'category'
-    )
+    try:
 
-    academic_year = request.args.get(
-        'academic_year'
-    )
+        expenses = Expense.query.all()
 
-    expenses = Expense.query
+        output = []
 
-    if category:
+        for expense in expenses:
 
-        expenses = expenses.filter_by(
-            category=category
-        )
+            output.append({
 
-    if academic_year:
+                "id": expense.id,
 
-        expenses = expenses.filter_by(
-            academic_year=academic_year
-        )
+                "category":
+                    expense.category,
 
-    expenses = expenses.all()
+                "amount":
+                    expense.amount,
 
-    output = []
+                "comment":
+                    expense.comment,
 
-    for expense in expenses:
+                "expense_date":
+                    expense.expense_date
+            })
 
-        output.append({
+        return jsonify(output)
 
-            "expense_date":
-                expense.expense_date,
+    except Exception as e:
 
-            "category":
-                expense.category,
+        print(e)
 
-            "amount":
-                expense.amount,
-
-            "payment_mode":
-                expense.payment_mode,
-
-            "comment":
-                expense.comment,
-
-            "academic_year":
-                expense.academic_year
-        })
-
-    return jsonify(output), 200
+        return jsonify({
+            "error": str(e)
+        }), 500

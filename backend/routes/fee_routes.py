@@ -2,167 +2,144 @@ from flask import Blueprint, request, jsonify
 
 from database.db import db
 
-from models.fee_structure_model import FeeStructure
-from models.bus_route_model import BusRoute
+from models.student_model import Student
+from models.fee_payment_model import FeePayment
 
-fee_bp = Blueprint('fee', __name__)
+from datetime import datetime
 
-# ADD FEE STRUCTURE
-@fee_bp.route('/add-structure', methods=['POST'])
-def add_fee_structure():
+fee_bp = Blueprint(
+    'fees',
+    __name__
+)
+
+
+# COLLECT FEES
+@fee_bp.route(
+    '/collect',
+    methods=['POST']
+)
+def collect_fees():
 
     try:
 
         data = request.get_json()
 
-        fee = FeeStructure(
+        student = Student.query.filter_by(
 
-            academic_year=data.get(
-                'academic_year'
-            ),
-
-            class_name=data.get(
-                'class_name'
-            ),
-
-            tuition_fee=float(
-                data.get('tuition_fee')
-            ),
-
-            new_admission_fee=float(
-                data.get(
-                    'new_admission_fee'
-                )
-            ),
-
-            old_admission_fee=float(
-                data.get(
-                    'old_admission_fee'
-                )
+            admission_number=data.get(
+                'admission_number'
             )
+
+        ).first()
+
+        if not student:
+
+            return jsonify({
+
+                "message":
+                    "Student not found"
+
+            }), 404
+
+        paid_amount = int(
+
+            data.get(
+                'paid_amount',
+                0
+            ) or 0
         )
 
-        db.session.add(fee)
+        student.paid_amount += paid_amount
+
+        student.remaining_amount -= paid_amount
+
+        receipt_number = (
+
+            "RCPT-"
+
+            +
+
+            str(int(
+                datetime.now().timestamp()
+            ))
+        )
+
+        payment = FeePayment(
+
+            student_id=student.id,
+
+            amount=paid_amount,
+
+            payment_date=str(
+                datetime.now().date()
+            ),
+
+            receipt_number=receipt_number
+        )
+
+        db.session.add(payment)
 
         db.session.commit()
 
         return jsonify({
+
             "message":
-                "Fee structure added"
-        }), 201
+                "Fees collected successfully",
+
+            "receipt_number":
+                receipt_number
+        })
 
     except Exception as e:
+
+        print(e)
 
         return jsonify({
             "error": str(e)
         }), 500
 
 
-# GET FEE STRUCTURES
-@fee_bp.route('/structures', methods=['GET'])
-def get_structures():
-
-    fees = FeeStructure.query.all()
-
-    output = []
-
-    for fee in fees:
-
-        output.append({
-
-            "id": fee.id,
-
-            "academic_year":
-                fee.academic_year,
-
-            "class_name":
-                fee.class_name,
-
-            "tuition_fee":
-                fee.tuition_fee,
-
-            "new_admission_fee":
-                fee.new_admission_fee,
-
-            "old_admission_fee":
-                fee.old_admission_fee
-        })
-
-    return jsonify(output), 200
-
-
-# DELETE FEE STRUCTURE
+# GET PAYMENTS
 @fee_bp.route(
-    '/delete-structure/<int:id>',
-    methods=['DELETE']
+    '/payments',
+    methods=['GET']
 )
-def delete_structure(id):
+def get_payments():
 
-    fee = FeeStructure.query.get(id)
+    try:
 
-    if not fee:
+        payments = FeePayment.query.all()
+
+        output = []
+
+        for payment in payments:
+
+            student = Student.query.get(
+                payment.student_id
+            )
+
+            output.append({
+
+                "student_name":
+                    student.full_name
+                    if student else "",
+
+                "amount":
+                    payment.amount,
+
+                "payment_date":
+                    payment.payment_date,
+
+                "receipt_number":
+                    payment.receipt_number
+            })
+
+        return jsonify(output)
+
+    except Exception as e:
+
+        print(e)
 
         return jsonify({
-            "message":
-                "Structure not found"
-        }), 404
-
-    db.session.delete(fee)
-
-    db.session.commit()
-
-    return jsonify({
-        "message":
-            "Fee structure deleted"
-    }), 200
-
-
-# ADD BUS ROUTE
-@fee_bp.route('/add-route', methods=['POST'])
-def add_route():
-
-    data = request.get_json()
-
-    route = BusRoute(
-
-        route_name=data.get(
-            'route_name'
-        ),
-
-        bus_fee=float(
-            data.get('bus_fee')
-        )
-    )
-
-    db.session.add(route)
-
-    db.session.commit()
-
-    return jsonify({
-        "message":
-            "Bus route added"
-    }), 201
-
-
-# GET ROUTES
-@fee_bp.route('/routes', methods=['GET'])
-def get_routes():
-
-    routes = BusRoute.query.all()
-
-    output = []
-
-    for route in routes:
-
-        output.append({
-
-            "id": route.id,
-
-            "route_name":
-                route.route_name,
-
-            "bus_fee":
-                route.bus_fee
-        })
-
-    return jsonify(output), 200
+            "error": str(e)
+        }), 500
