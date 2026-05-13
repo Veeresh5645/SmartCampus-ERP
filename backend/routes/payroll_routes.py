@@ -68,7 +68,7 @@ def bulk_attendance():
         }), 500
 
 
-# GENERATE PAYROLL
+# GENERATE MONTHLY PAYROLL
 @payroll_bp.route(
     '/generate-payroll',
     methods=['POST']
@@ -164,7 +164,7 @@ def generate_payroll():
         }), 500
 
 
-# GET SALARY RECORDS
+# GET MONTHLY SALARY RECORDS
 @payroll_bp.route(
     '/salary-records/<month>',
     methods=['GET']
@@ -187,7 +187,8 @@ def get_salary_records(month):
 
             output.append({
 
-                "id": record.id,
+                "id":
+                    record.id,
 
                 "teacher_name":
                     teacher.full_name
@@ -247,7 +248,7 @@ def pay_salary(salary_id):
 
             }), 404
 
-        # ALREADY PAID
+        # PREVENT DOUBLE PAYMENT
         if salary_record.is_paid:
 
             return jsonify({
@@ -269,7 +270,7 @@ def pay_salary(salary_id):
 
         db.session.commit()
 
-        # TOTAL PAID SALARY FOR MONTH
+        # GET TOTAL PAID SALARY OF MONTH
         paid_records = SalaryRecord.query.filter_by(
 
             month=salary_record.month,
@@ -285,8 +286,36 @@ def pay_salary(salary_id):
             for item in paid_records
         ])
 
+        # MONTH NAME FORMAT
+        month_text = salary_record.month
+
+        year = month_text[:4]
+
+        month_number = month_text[5:7]
+
+        month_names = {
+
+            "01": "January",
+            "02": "February",
+            "03": "March",
+            "04": "April",
+            "05": "May",
+            "06": "June",
+            "07": "July",
+            "08": "August",
+            "09": "September",
+            "10": "October",
+            "11": "November",
+            "12": "December"
+        }
+
+        month_name = month_names.get(
+            month_number,
+            month_number
+        )
+
         comment_text = (
-            f'Salary paid for {salary_record.month}'
+            f'Salary paid for {month_name} {year}'
         )
 
         existing_expense = Expense.query.filter_by(
