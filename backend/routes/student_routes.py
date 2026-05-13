@@ -3,6 +3,9 @@ from flask import Blueprint, request, jsonify
 from database.db import db
 
 from models.student_model import Student
+from models.fee_structure_model import FeeStructure
+from models.bus_route_model import BusRoute
+from models.old_due_model import OldDue
 
 student_bp = Blueprint('student', __name__)
 
@@ -14,25 +17,74 @@ def add_student():
 
         data = request.get_json()
 
-        admission_fee = float(data.get('admission_fee', 0))
+        academic_year = data.get('academic_year')
 
-        tuition_fee = float(data.get('tuition_fee', 0))
+        current_class = data.get('current_class')
 
-        bus_fee = float(data.get('bus_fee', 0))
+        # FETCH FEE STRUCTURE
+        fee_structure = FeeStructure.query.filter_by(
+            academic_year=academic_year,
+            class_name=current_class
+        ).first()
 
-        previous_due = float(data.get('previous_due', 0))
+        if not fee_structure:
 
-        paid_amount = float(data.get('paid_amount', 0))
+            return jsonify({
+                "message": "Fee structure not found"
+            }), 404
+
+        tuition_fee = fee_structure.tuition_fee
+
+        if data.get('admission_type') == 'new':
+            admission_fee = (
+                fee_structure.new_admission_fee
+            )
+
+        else:
+            admission_fee = (
+                fee_structure.old_admission_fee
+            )
+
+        # BUS LOGIC
+        bus_required = data.get('bus_required')
+
+        bus_fee = 0
+
+        if bus_required:
+
+            route = BusRoute.query.filter_by(
+                route_name=data.get('bus_route')
+            ).first()
+
+            if route:
+
+                bus_fee = route.bus_fee
+
+        # OLD DUES
+        total_old_due = 0
+
+        old_dues = data.get('old_dues', [])
+
+        for due in old_dues:
+
+            pending = float(due.get('pending_fee', 0))
+
+            total_old_due += pending
 
         total_fee = (
-            admission_fee +
             tuition_fee +
+            admission_fee +
             bus_fee +
-            previous_due
+            total_old_due
+        )
+
+        paid_amount = float(
+            data.get('paid_amount', 0)
         )
 
         remaining_amount = total_fee - paid_amount
 
+        # CREATE STUDENT
         student = Student(
 
             full_name=data.get('full_name'),
@@ -43,7 +95,7 @@ def add_student():
 
             joining_year=data.get('joining_year'),
 
-            current_class=data.get('current_class'),
+            current_class=current_class,
 
             section=data.get('section'),
 
@@ -53,7 +105,7 @@ def add_student():
 
             address=data.get('address'),
 
-            bus_required=data.get('bus_required'),
+            bus_required=bus_required,
 
             bus_route=data.get('bus_route'),
 
@@ -63,7 +115,7 @@ def add_student():
 
             bus_fee=bus_fee,
 
-            previous_due=previous_due,
+            previous_due=total_old_due,
 
             total_fee=total_fee,
 
@@ -73,6 +125,24 @@ def add_student():
         )
 
         db.session.add(student)
+
+        db.session.commit()
+
+        # SAVE YEAR-WISE DUES
+        for due in old_dues:
+
+            old_due = OldDue(
+
+                student_admission_number=data.get(
+                    'admission_number'
+                ),
+
+                academic_year=due.get('academic_year'),
+
+                pending_fee=due.get('pending_fee')
+            )
+
+            db.session.add(old_due)
 
         db.session.commit()
 
@@ -87,7 +157,7 @@ def add_student():
         }), 500
 
 
-# GET ALL STUDENTS
+# GET STUDENTS
 @student_bp.route('/all', methods=['GET'])
 def get_students():
 
@@ -107,13 +177,11 @@ def get_students():
 
             "admission_type": student.admission_type,
 
-            "joining_year": student.joining_year,
-
             "current_class": student.current_class,
 
-            "section": student.section,
+            "total_fee": student.total_fee,
 
-            "previous_due": student.previous_due,
+            "paid_amount": student.paid_amount,
 
             "remaining_amount": student.remaining_amount
         })

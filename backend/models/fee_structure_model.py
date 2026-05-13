@@ -12,7 +12,9 @@ class FeeStructure(db.Model):
 
     tuition_fee = db.Column(db.Float)
 
-    admission_fee = db.Column(db.Float)
+    new_admission_fee = db.Column(db.Float)
+
+    old_admission_fee = db.Column(db.Float)
 
     def __repr__(self):
 
