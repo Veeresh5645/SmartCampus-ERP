@@ -80,10 +80,8 @@ app.register_blueprint(
 # CREATE DATABASE TABLES
 with app.app_context():
 
-    db.drop_all()
-
     db.create_all()
-    
+
 # RUN APP
 if __name__ == '__main__':
 
@@ -96,6 +94,5 @@ if __name__ == '__main__':
 
     app.run(
         host='0.0.0.0',
-        port=port,
-        debug=True
+        port=port
     )
