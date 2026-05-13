@@ -79,8 +79,9 @@ app.register_blueprint(
 
 # CREATE DATABASE TABLES
 with app.app_context():
+        db.drop_all()
+        db.create_all()
 
-    db.create_all()
 
 # RUN APP
 if __name__ == '__main__':
