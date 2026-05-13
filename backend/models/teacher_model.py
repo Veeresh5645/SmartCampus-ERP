@@ -4,17 +4,32 @@ class Teacher(db.Model):
 
     __tablename__ = 'teachers'
 
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
 
-    full_name = db.Column(db.String(100))
+    full_name = db.Column(
+        db.String(200)
+    )
 
-    subject = db.Column(db.String(100))
+    email = db.Column(
+        db.String(200)
+    )
 
-    salary = db.Column(db.Float, default=0)
+    phone = db.Column(
+        db.String(50)
+    )
 
-    paid_salary = db.Column(db.Float, default=0)
+    subject = db.Column(
+        db.String(100)
+    )
 
-    remaining_salary = db.Column(db.Float, default=0)
+    salary = db.Column(
+        db.Integer,
+        default=0
+    )
 
     def __repr__(self):
+
         return f'<Teacher {self.full_name}>'
