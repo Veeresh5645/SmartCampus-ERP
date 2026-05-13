@@ -27,9 +27,22 @@ class SalaryRecord(db.Model):
         default=0
     )
 
-    salary = db.Column(
-        db.Integer,
+    calculated_salary = db.Column(
+        db.Float,
         default=0
+    )
+
+    is_paid = db.Column(
+        db.Boolean,
+        default=False
+    )
+
+    payment_mode = db.Column(
+        db.String(50)
+    )
+
+    paid_date = db.Column(
+        db.String(50)
     )
 
     def __repr__(self):

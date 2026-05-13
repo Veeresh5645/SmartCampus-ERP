@@ -5,7 +5,9 @@ from database.db import db
 from models.teacher_model import Teacher
 from models.teacher_attendance_model import TeacherAttendance
 from models.salary_record_model import SalaryRecord
-from models.working_day_model import WorkingDay
+from models.expense_model import Expense
+
+from datetime import datetime
 
 payroll_bp = Blueprint(
     'payroll',
@@ -23,23 +25,6 @@ def bulk_attendance():
     try:
 
         data = request.get_json()
-
-        working_day = WorkingDay(
-
-            attendance_date=data.get(
-                'attendance_date'
-            ),
-
-            is_working_day=data.get(
-                'is_working_day'
-            ),
-
-            holiday_reason=data.get(
-                'holiday_reason'
-            )
-        )
-
-        db.session.add(working_day)
 
         records = data.get(
             'attendance_records',
@@ -65,71 +50,102 @@ def bulk_attendance():
 
             db.session.add(attendance)
 
-            # AUTO SALARY GENERATION
-            teacher = Teacher.query.get(
-                record.get(
-                    'teacher_id'
-                )
+        db.session.commit()
+
+        return jsonify({
+
+            "message":
+                "Attendance saved"
+
+        }), 201
+
+    except Exception as e:
+
+        return jsonify({
+            "error": str(e)
+        }), 500
+
+
+# GENERATE PAYROLL
+@payroll_bp.route(
+    '/generate-payroll',
+    methods=['POST']
+)
+def generate_payroll():
+
+    try:
+
+        data = request.get_json()
+
+        month = data.get('month')
+
+        SalaryRecord.query.filter_by(
+            month=month
+        ).delete()
+
+        teachers = Teacher.query.all()
+
+        for teacher in teachers:
+
+            attendance_records = TeacherAttendance.query.filter(
+
+                TeacherAttendance.teacher_id == teacher.id,
+
+                TeacherAttendance.attendance_date.like(
+                    f'{month}%'
+                ),
+
+                TeacherAttendance.status == 'Present'
+
+            ).all()
+
+            attended_days = len(
+                attendance_records
             )
 
-            if teacher:
+            working_days = 26
 
-                monthly_salary = int(
-                    teacher.salary or 0
-                )
+            monthly_salary = int(
+                teacher.salary or 0
+            )
 
-                working_days = 26
+            per_day_salary = (
+                monthly_salary / working_days
+            )
 
-                per_day_salary = (
-                    monthly_salary
-                    / working_days
-                )
+            final_salary = (
+                per_day_salary * attended_days
+            )
 
-                final_salary = 0
+            salary_record = SalaryRecord(
 
-                if record.get(
-                    'status'
-                ) == 'Present':
+                teacher_id=teacher.id,
 
-                    final_salary = (
-                        per_day_salary
-                    )
+                month=month,
 
-                salary_record = SalaryRecord(
+                working_days=working_days,
 
-                    teacher_id=teacher.id,
+                attended_days=attended_days,
 
-                    month=data.get(
-                        'attendance_date'
-                    )[:7],
+                calculated_salary=final_salary,
 
-                    working_days=working_days,
+                is_paid=False
+            )
 
-                    attended_days=1
-                    if record.get(
-                        'status'
-                    ) == 'Present'
-                    else 0,
-
-                    salary=final_salary
-                )
-
-                db.session.add(
-                    salary_record
-                )
+            db.session.add(
+                salary_record
+            )
 
         db.session.commit()
 
         return jsonify({
 
             "message":
-                "Attendance saved successfully"
+                "Payroll generated"
 
-        }), 201
+        })
 
     except Exception as e:
-
-        print(e)
 
         return jsonify({
             "error": str(e)
@@ -138,14 +154,16 @@ def bulk_attendance():
 
 # GET SALARY RECORDS
 @payroll_bp.route(
-    '/salary-records',
+    '/salary-records/<month>',
     methods=['GET']
 )
-def get_salary_records():
+def get_salary_records(month):
 
     try:
 
-        records = SalaryRecord.query.all()
+        records = SalaryRecord.query.filter_by(
+            month=month
+        ).all()
 
         output = []
 
@@ -157,12 +175,10 @@ def get_salary_records():
 
             output.append({
 
-                "teacher_name":
-                    teacher.full_name
-                    if teacher else "",
+                "id": record.id,
 
-                "month":
-                    record.month,
+                "teacher_name":
+                    teacher.full_name,
 
                 "working_days":
                     record.working_days,
@@ -171,14 +187,107 @@ def get_salary_records():
                     record.attended_days,
 
                 "salary":
-                    record.salary
+                    record.calculated_salary,
+
+                "is_paid":
+                    record.is_paid,
+
+                "payment_mode":
+                    record.payment_mode
             })
 
         return jsonify(output)
 
     except Exception as e:
 
-        print(e)
+        return jsonify({
+            "error": str(e)
+        }), 500
+
+
+# PAY SALARY
+@payroll_bp.route(
+    '/pay-salary/<int:salary_id>',
+    methods=['POST']
+)
+def pay_salary(salary_id):
+
+    try:
+
+        data = request.get_json()
+
+        salary_record = SalaryRecord.query.get(
+            salary_id
+        )
+
+        salary_record.is_paid = True
+
+        salary_record.payment_mode = data.get(
+            'payment_mode'
+        )
+
+        salary_record.paid_date = str(
+            datetime.now().date()
+        )
+
+        db.session.commit()
+
+        paid_records = SalaryRecord.query.filter_by(
+
+            month=salary_record.month,
+
+            is_paid=True
+
+        ).all()
+
+        total_salary_paid = sum([
+
+            item.calculated_salary
+
+            for item in paid_records
+        ])
+
+        existing_expense = Expense.query.filter_by(
+
+            category='Salary',
+
+            comment=f'Salary paid for {salary_record.month}'
+
+        ).first()
+
+        if not existing_expense:
+
+            expense = Expense(
+
+                category='Salary',
+
+                amount=total_salary_paid,
+
+                comment=f'Salary paid for {salary_record.month}',
+
+                expense_date=str(
+                    datetime.now().date()
+                )
+            )
+
+            db.session.add(expense)
+
+        else:
+
+            existing_expense.amount = (
+                total_salary_paid
+            )
+
+        db.session.commit()
+
+        return jsonify({
+
+            "message":
+                "Salary paid"
+
+        })
+
+    except Exception as e:
 
         return jsonify({
             "error": str(e)
