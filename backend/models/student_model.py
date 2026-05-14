@@ -10,19 +10,14 @@ class Student(db.Model):
     )
 
     full_name = db.Column(
-        db.String(200)
+        db.String(100)
     )
 
     admission_number = db.Column(
-        db.String(100),
-        unique=True
+        db.String(100)
     )
 
-    admission_type = db.Column(
-        db.String(50)
-    )
-
-    joining_year = db.Column(
+    current_class = db.Column(
         db.String(50)
     )
 
@@ -30,47 +25,26 @@ class Student(db.Model):
         db.String(50)
     )
 
-    current_class = db.Column(
-        db.String(100)
-    )
-
-    section = db.Column(
-        db.String(50)
-    )
-
-    parent_name = db.Column(
-        db.String(200)
-    )
-
-    phone = db.Column(
-        db.String(50)
-    )
-
-    address = db.Column(
-        db.Text
-    )
-
     bus_required = db.Column(
-        db.Boolean,
-        default=False
+        db.String(10)
     )
 
     bus_route = db.Column(
-        db.String(200)
+        db.String(100)
     )
 
-    total_fee = db.Column(
-        db.Integer,
+    total_fees = db.Column(
+        db.Float,
         default=0
     )
 
     paid_amount = db.Column(
-        db.Integer,
+        db.Float,
         default=0
     )
 
     remaining_amount = db.Column(
-        db.Integer,
+        db.Float,
         default=0
     )
 

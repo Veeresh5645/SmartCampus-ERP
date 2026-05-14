@@ -39,6 +39,14 @@ def add_student():
                 'academic_year'
             ),
 
+            bus_required=data.get(
+                'bus_required'
+            ),
+
+            bus_route=data.get(
+                'bus_route'
+            ),
+
             total_fees=float(
                 data.get(
                     'total_fees',
@@ -112,6 +120,12 @@ def get_students():
 
                 "academic_year":
                     student.academic_year,
+
+                "bus_required":
+                    student.bus_required,
+
+                "bus_route":
+                    student.bus_route,
 
                 "total_fees":
                     student.total_fees,
