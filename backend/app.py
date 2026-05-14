@@ -45,6 +45,7 @@ from routes.teacher_routes import teacher_bp
 from routes.fee_routes import fee_bp
 from routes.accounting_routes import accounting_bp
 from routes.payroll_routes import payroll_bp
+from routes.fee_structure_routes import fee_structure_bp
 
 # REGISTER BLUEPRINTS
 app.register_blueprint(
@@ -77,8 +78,14 @@ app.register_blueprint(
     url_prefix='/api/payroll'
 )
 
+app.register_blueprint(
+    fee_structure_bp,
+    url_prefix='/api/fee-structure'
+)
+
 # CREATE DATABASE TABLES
 with app.app_context():
+    db.drop_all()
 
     db.create_all()
 
