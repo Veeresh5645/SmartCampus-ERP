@@ -38,17 +38,6 @@ def add_fee_structure():
                 ) or 0
             ),
 
-            bus_route=data.get(
-                'bus_route'
-            ),
-
-            bus_fee=float(
-                data.get(
-                    'bus_fee',
-                    0
-                ) or 0
-            ),
-
             new_admission_fee=float(
                 data.get(
                     'new_admission_fee',
@@ -114,12 +103,6 @@ def get_fee_structures():
 
                 "tuition_fee":
                     fee.tuition_fee,
-
-                "bus_route":
-                    fee.bus_route,
-
-                "bus_fee":
-                    fee.bus_fee,
 
                 "new_admission_fee":
                     fee.new_admission_fee,

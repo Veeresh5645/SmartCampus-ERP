@@ -22,7 +22,6 @@ class FeeStructure(db.Model):
         default=0
     )
 
-
     new_admission_fee = db.Column(
         db.Float,
         default=0
