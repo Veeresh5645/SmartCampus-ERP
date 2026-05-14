@@ -22,14 +22,6 @@ class FeeStructure(db.Model):
         default=0
     )
 
-    bus_route = db.Column(
-        db.String(100)
-    )
-
-    bus_fee = db.Column(
-        db.Float,
-        default=0
-    )
 
     new_admission_fee = db.Column(
         db.Float,

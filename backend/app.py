@@ -46,6 +46,7 @@ from routes.fee_routes import fee_bp
 from routes.accounting_routes import accounting_bp
 from routes.payroll_routes import payroll_bp
 from routes.fee_structure_routes import fee_structure_bp
+from routes.bus_fee_routes import bus_fee_bp
 
 # REGISTER BLUEPRINTS
 app.register_blueprint(
@@ -81,6 +82,11 @@ app.register_blueprint(
 app.register_blueprint(
     fee_structure_bp,
     url_prefix='/api/fee-structure'
+)
+
+app.register_blueprint(
+    bus_fee_bp,
+    url_prefix='/api/bus-fees'
 )
 
 # CREATE DATABASE TABLES
