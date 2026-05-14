@@ -3,56 +3,11 @@ from flask import Blueprint, request, jsonify
 from database.db import db
 
 from models.student_model import Student
-from models.fee_structure_model import FeeStructure
-from models.bus_route_model import BusRoute
 
 student_bp = Blueprint(
     'students',
     __name__
 )
-
-# GET ALL STUDENTS
-@student_bp.route(
-    '/all',
-    methods=['GET']
-)
-def get_students():
-
-    students = Student.query.all()
-
-    output = []
-
-    for student in students:
-
-        output.append({
-
-            "id": student.id,
-
-            "full_name": student.full_name,
-
-            "admission_number":
-                student.admission_number,
-
-            "joining_year":
-                student.joining_year,
-
-            "academic_year":
-                student.academic_year,
-
-            "current_class":
-                student.current_class,
-
-            "paid_amount":
-                student.paid_amount,
-
-            "remaining_amount":
-                student.remaining_amount,
-
-            "total_fee":
-                student.total_fee
-        })
-
-    return jsonify(output)
 
 
 # ADD STUDENT
@@ -62,168 +17,118 @@ def get_students():
 )
 def add_student():
 
-    data = request.get_json()
+    try:
 
-    fee_structure = FeeStructure.query.filter_by(
+        data = request.get_json()
 
-        academic_year=data.get(
-            'academic_year'
-        ),
+        student = Student(
 
-        class_name=data.get(
-            'current_class'
+            full_name=data.get(
+                'full_name'
+            ),
+
+            admission_number=data.get(
+                'admission_number'
+            ),
+
+            current_class=data.get(
+                'current_class'
+            ),
+
+            academic_year=data.get(
+                'academic_year'
+            ),
+
+            total_fees=float(
+                data.get(
+                    'total_fees',
+                    0
+                ) or 0
+            ),
+
+            paid_amount=float(
+                data.get(
+                    'paid_amount',
+                    0
+                ) or 0
+            ),
+
+            remaining_amount=float(
+                data.get(
+                    'remaining_amount',
+                    0
+                ) or 0
+            )
         )
 
-    ).first()
+        db.session.add(student)
 
-    tuition_fee = 0
-    admission_fee = 0
-    bus_fee = 0
+        db.session.commit()
 
-    if fee_structure:
+        return jsonify({
 
-        tuition_fee = (
-            fee_structure.tuition_fee
-        )
+            "message":
+                "Student saved successfully"
 
-        if data.get(
-            'admission_type'
-        ) == 'new':
+        }), 201
 
-            admission_fee = (
-                fee_structure
-                .new_admission_fee
-            )
+    except Exception as e:
 
-        else:
+        print(e)
 
-            admission_fee = (
-                fee_structure
-                .old_admission_fee
-            )
+        return jsonify({
+            "error": str(e)
+        }), 500
 
-    if data.get('bus_required'):
 
-        route = BusRoute.query.filter_by(
+# GET ALL STUDENTS
+@student_bp.route(
+    '/all',
+    methods=['GET']
+)
+def get_students():
 
-            route_name=data.get(
-                'bus_route'
-            )
+    try:
 
-        ).first()
+        students = Student.query.all()
 
-        if route:
+        output = []
 
-            bus_fee = route.bus_fee
+        for student in students:
 
-    old_due_total = 0
+            output.append({
 
-    for due in data.get(
-        'old_dues',
-        []
-    ):
+                "id":
+                    student.id,
 
-        old_due_total += int(
+                "full_name":
+                    student.full_name,
 
-            due.get(
-                'pending_fee',
-                0
-            ) or 0
-        )
+                "admission_number":
+                    student.admission_number,
 
-    total_fee = (
+                "current_class":
+                    student.current_class,
 
-        int(tuition_fee or 0)
+                "academic_year":
+                    student.academic_year,
 
-        +
+                "total_fees":
+                    student.total_fees,
 
-        int(admission_fee or 0)
+                "paid_amount":
+                    student.paid_amount,
 
-        +
+                "remaining_amount":
+                    student.remaining_amount
+            })
 
-        int(bus_fee or 0)
+        return jsonify(output)
 
-        +
+    except Exception as e:
 
-        old_due_total
-    )
+        print(e)
 
-    paid_amount = int(
-
-        data.get(
-            'paid_amount',
-            0
-        ) or 0
-    )
-
-    remaining_amount = (
-        total_fee - paid_amount
-    )
-
-    student = Student(
-
-        full_name=data.get(
-            'full_name'
-        ),
-
-        admission_number=data.get(
-            'admission_number'
-        ),
-
-        admission_type=data.get(
-            'admission_type'
-        ),
-
-        joining_year=data.get(
-            'joining_year'
-        ),
-
-        academic_year=data.get(
-            'academic_year'
-        ),
-
-        current_class=data.get(
-            'current_class'
-        ),
-
-        section=data.get(
-            'section'
-        ),
-
-        parent_name=data.get(
-            'parent_name'
-        ),
-
-        phone=data.get(
-            'phone'
-        ),
-
-        address=data.get(
-            'address'
-        ),
-
-        bus_required=data.get(
-            'bus_required'
-        ),
-
-        bus_route=data.get(
-            'bus_route'
-        ),
-
-        total_fee=total_fee,
-
-        paid_amount=paid_amount,
-
-        remaining_amount=remaining_amount
-    )
-
-    db.session.add(student)
-
-    db.session.commit()
-
-    return jsonify({
-
-        "message":
-            "Student added successfully"
-
-    }), 201
+        return jsonify({
+            "error": str(e)
+        }), 500
